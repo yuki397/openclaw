@@ -79,19 +79,56 @@ export class TypeXClient {
   }
 
   async sendMessage(content: string | object, msgType: TypeXMessageEnum = 0) {
-    const token = await this.getAccessToken();
-    logger.info(`TypeXClient sending message: type=${msgType}, content=${JSON.stringify(content)}`);
-    // In a real implementation, this would make an HTTP request to the TypeX API
-    return {
-      message_id: `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-    };
-  }
+    const token = this.accessToken;
+    if (!token) {
+      logger.error("Cannot send message: No access token available.");
+      throw new Error("TypeXClient: Not authenticated.");
+    }
 
-  async uploadFile(buffer: Buffer, fileName: string, fileType: string) {
-    logger.info(`TypeXClient uploading file: ${fileName} (${fileType})`);
-    return {
-      file_key: `file_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-    };
+    let finalContent = content;
+    if (typeof content === "object") {
+      try {
+        finalContent = JSON.stringify(content);
+      } catch (e) {
+        logger.warn("Failed to stringify message content", e);
+        finalContent = String(content);
+      }
+    }
+
+    logger.info(`TypeXClient sending message: type=${msgType}, content=${finalContent}`);
+
+    try {
+      const url = `${TYPEX_DOMAIN}/open/claw/send_message`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: finalContent,
+          msg_type: msgType,
+        }),
+      });
+
+      const resJson = await response.json();
+
+      if (resJson.code !== 200) {
+        throw new Error(`Send message failed: [${resJson.code}] ${resJson.message}`);
+      }
+
+      logger.debug("Message sent successfully", resJson.data);
+
+      return (
+        resJson.data || {
+          message_id: `msg_${Date.now()}`,
+        }
+      );
+    } catch (error) {
+      logger.error("Error sending message to TypeX API:", error);
+      throw error;
+    }
   }
 }
 
