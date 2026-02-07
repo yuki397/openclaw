@@ -1,0 +1,33 @@
+{
+  "name": "@openclaw/typex",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "types": "index.ts",
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "typex",
+      "label": "TypeX",
+      "selectionLabel": "TypeX (QR Code Login)",
+      "detailLabel": "TypeX Bot",
+      "docsPath": "/channels/typex",
+      "docsLabel": "typex",
+      "blurb": "TypeX bot via QR Code login.",
+      "aliases": [
+        "typex"
+      ],
+      "order": 100,
+      "quickstartAllowFrom": true
+    },
+    "install": {
+      "npmSpec": "@openclaw/extension-typex",
+      "localPath": "extensions/typex",
+      "defaultChoice": "npm"
+    }
+  }
+}
