@@ -6,7 +6,6 @@ import { getTypeXClient } from "../../../src/typex/client.js";
 export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
   channel: "typex",
   getStatus: async ({ cfg }) => {
-    // Check if we have a default account configured
     const accountId = resolveDefaultTypeXAccountId(cfg);
     const configured = Boolean(
       cfg.channels?.typex?.accounts?.[accountId]?.email &&
@@ -22,27 +21,15 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
     };
   },
   configure: async ({ cfg, prompter }) => {
-    const email = await prompter.text({
-      message: "Please enter your TypeX Email:",
-      placeholder: "user@example.com",
-    });
+    const client = getTypeXClient(undefined, { skipConfigCheck: true });
 
-    if (!email) return { cfg };
-
-    const client = getTypeXClient(undefined, { email, skipConfigCheck: true });
-
-    await prompter.note(
-      `Initializing TypeX for ${email}...\nPlease scan the QR code shortly.`,
-      "TypeX Setup",
-    );
+    await prompter.note(`Initializing TypeX ...\nPlease scan the QR code shortly.`, "TypeX Setup");
 
     try {
       const qrcodeData = await client.fetchQrcodeUrl();
       const { uuid, expired_at, url } = qrcodeData;
-      // for validing current user's email in typex app
-      const urlWithEmail = `${url}&email=${email}`;
       console.log("\nScan this QR code with TypeX App:\n");
-      qrcode.generate(urlWithEmail, { small: true });
+      qrcode.generate(url, { small: true });
 
       // Polling
       await prompter.note("Waiting for scan...", "Status");
@@ -77,16 +64,15 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
       if (!cfg.channels.typex.accounts) cfg.channels.typex.accounts = {};
 
       // save config
-      cfg.channels.typex.accounts[email] = {
-        email: email,
+      cfg.channels.typex.accounts[token] = {
         token: token,
       };
 
-      cfg.channels.typex.defaultAccount = email;
+      cfg.channels.typex.defaultAccount = token;
 
       await prompter.note("Success! TypeX linked.", "Done");
 
-      return { cfg, accountId: email };
+      return { cfg, accountId: token };
     } catch (error) {
       await prompter.note(`Setup Failed: ${String(error)}`, "Error");
       return { cfg };

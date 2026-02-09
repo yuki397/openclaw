@@ -66,7 +66,7 @@ export const typexPlugin: ChannelPlugin<any> = {
         accountId: id,
         name: account?.name || "TypeX",
         enabled: account?.enabled !== false,
-        configured: Boolean(account?.appId && account?.appSecret),
+        configured: Boolean(account?.email),
         tokenSource: "config",
         config: account || {},
       };

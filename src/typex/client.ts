@@ -3,7 +3,8 @@ import { getChildLogger } from "../logging.js";
 import { TypeXMessageEnum, type TypeXClientOptions, type TypeXMessage } from "./types.js";
 
 const logger = getChildLogger({ module: "typex-client" });
-const TYPEX_DOMAIN = "api-coco.typex.im";
+// const TYPEX_DOMAIN = "api-coco.typex.im";
+const TYPEX_DOMAIN = "api-tx.bossjob.net.cn";
 
 export class TypeXClient {
   private options: TypeXClientOptions;
@@ -142,25 +143,19 @@ export function getTypeXClient(accountId?: string, manualOptions?: TypeXClientOp
 
   const typexCfg = cfg.channels?.typex || {};
 
-  let email = manualOptions?.email;
   let token = manualOptions?.token;
 
-  if (!email) {
-    if (accountId && typexCfg.accounts?.[accountId]) {
-      email = typexCfg.accounts[accountId].email;
-      token = typexCfg.accounts[accountId].token;
-    } else if (typexCfg.email) {
-      email = typexCfg.email;
-      token = typexCfg.token;
-    }
+  if (accountId && typexCfg.accounts?.[accountId]) {
+    token = typexCfg.accounts[accountId].token;
+  } else if (typexCfg.email) {
+    token = typexCfg.token;
   }
 
-  if (!email && !manualOptions?.skipConfigCheck) {
+  if (!manualOptions?.skipConfigCheck) {
     throw new Error("TypeX email not configured yet.");
   }
 
   return new TypeXClient({
-    email: email || "",
     token: token,
   });
 }

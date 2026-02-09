@@ -9,7 +9,6 @@ export type TypeXMessage = {
 };
 
 export interface TypeXClientOptions {
-  email?: string;
   token?: string;
   skipConfigCheck?: boolean;
 }
