@@ -8,8 +8,8 @@ import {
 } from "./types.js";
 
 const logger = getChildLogger({ module: "typex-client" });
-// const TYPEX_DOMAIN = "api-coco.typex.im";
-const TYPEX_DOMAIN = "api-tx.bossjob.net.cn";
+// const TYPEX_DOMAIN = "https://api-coco.typex.im";
+const TYPEX_DOMAIN = "https://api-tx.bossjob.net.cn";
 
 export class TypeXClient {
   private options: TypeXClientOptions;
@@ -39,23 +39,25 @@ export class TypeXClient {
 
   async fetchQrcodeUrl() {
     try {
-      return {
-        uuid: "17234567890",
-        expired_at: 1678901234,
-        url: "http://api.typex.com/open/claw/qrcode/login?qr_code_id=17234567890",
-      };
-      const qrResponse = await fetch(`${TYPEX_DOMAIN}/user/qrcode`, {
+      // return {
+      //   uuid: "17234567890",
+      //   expired_at: 1678901234,
+      //   url: "http://api.typex.com/open/claw/qrcode/login?qr_code_id=17234567890",
+      // };
+      const qrResponse = await fetch(`${TYPEX_DOMAIN}/user/qrcode?login_type=open`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-developer": "ryan" },
+        body: JSON.stringify({}),
       });
-
+      if (!qrResponse.ok) {
+        throw new Error(`Failed to get QR code: ${qrResponse.statusText}`);
+      }
       const qrResult = await qrResponse.json();
-
-      if (qrResult.code !== 200 || !qrResult.data) {
-        throw new Error(`Failed to get QR code: ${qrResult.message}`);
+      if (qrResult.code !== 0 || !qrResult.data) {
+        throw new Error(`Failed to get QR code: ${qrResult.msg}`);
       }
 
-      // return qrResult.data;
+      return qrResult.data;
     } catch (error) {
       logger.error("generate qrcode failed:", error);
       throw error;
@@ -70,16 +72,27 @@ export class TypeXClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-developer": "ryan",
         },
         body: JSON.stringify({
           qr_code_id: qrcodeId,
         }),
       });
+      console.log("checkRes", checkRes);
+      const setCookieHeader = checkRes.headers.get("set-cookie");
 
+      if (setCookieHeader) {
+        const match = setCookieHeader.match(/(sessionid=[^;]+)/);
+
+        if (match && match[1]) {
+          this.accessToken = match[1];
+          logger.info(`Session cookie captured: ${this.accessToken.substring(0, 20)}...`);
+        }
+      }
       const checkData = await checkRes.json();
-      if (checkData.code === 200) {
-        const { token, user_id } = checkData.data;
-        this.accessToken = token;
+      console.log("checkData", checkData);
+      if (checkData.code === 0) {
+        const { user_id } = checkData.data;
         this.userId = user_id;
         logger.info(`TypeX login successful! UserID: ${user_id}`);
         return true;

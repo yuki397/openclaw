@@ -394,11 +394,7 @@ export {
   resolveTypeXAccount,
   type ResolvedTypeXAccount,
 } from "../typex/accounts.js";
-export {
-  resolveTypeXConfig,
-  resolveTypeXGroupEnabled,
-  resolveTypeXGroupRequireMention,
-} from "../typex/config.js";
+export { resolveTypeXConfig } from "../typex/config.js";
 export { normalizeTypeXTarget } from "../channels/plugins/normalize/typex.js";
 
 // Media utilities

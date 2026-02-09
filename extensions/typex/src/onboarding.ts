@@ -27,9 +27,10 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
 
     try {
       const qrcodeData = await client.fetchQrcodeUrl();
-      const { uuid, expired_at, url } = qrcodeData;
+      const parsedData = new URLSearchParams(qrcodeData);
+      const qrcodeId = parsedData.get("qr_code_id") || "";
       console.log("\nScan this QR code with TypeX App:\n");
-      qrcode.generate(url, { small: true });
+      qrcode.generate(qrcodeData, { small: true });
 
       // Polling
       await prompter.note("Waiting for scan...", "Status");
@@ -43,7 +44,7 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
         // wait for about 2 min
         await new Promise((r) => setTimeout(r, 2000));
 
-        const loginSuccessfully = await client.checkLoginStatus(uuid);
+        const loginSuccessfully = await client.checkLoginStatus(qrcodeId);
 
         if (loginSuccessfully) {
           token = await client.getAccessToken();
