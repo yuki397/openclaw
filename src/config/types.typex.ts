@@ -25,6 +25,10 @@ export type TypeXAccountConfig = {
   email?: string;
   /** TypeX token. */
   token?: string;
+  /** App ID. */
+  appId?: string;
+  /** App Secret. */
+  appSecret?: string;
   /** Path to file containing app secret (for secret managers). */
   appSecretFile?: string;
   /** Optional API domain or base URL override. */

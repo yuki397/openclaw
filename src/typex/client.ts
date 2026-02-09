@@ -1,6 +1,11 @@
 import { loadConfig } from "../config/config.js";
 import { getChildLogger } from "../logging.js";
-import { TypeXMessageEnum, type TypeXClientOptions, type TypeXMessage } from "./types.js";
+import {
+  TypeXMessageEnum,
+  type TypeXClientOptions,
+  type TypeXMessage,
+  type TypeXMessageEntry,
+} from "./types.js";
 
 const logger = getChildLogger({ module: "typex-client" });
 // const TYPEX_DOMAIN = "api-coco.typex.im";
@@ -8,9 +13,14 @@ const TYPEX_DOMAIN = "api-tx.bossjob.net.cn";
 
 export class TypeXClient {
   private options: TypeXClientOptions;
+  private accessToken?: string;
+  private userId?: string;
 
   constructor(options: TypeXClientOptions) {
     this.options = options;
+    if (options.token) {
+      this.accessToken = options.token;
+    }
   }
 
   async getAccessToken() {
@@ -20,7 +30,12 @@ export class TypeXClient {
     return "";
   }
 
-  private accessToken?: string;
+  async getCurUserId() {
+    if (this.userId) {
+      return this.userId;
+    }
+    return "";
+  }
 
   async fetchQrcodeUrl() {
     try {
@@ -29,7 +44,7 @@ export class TypeXClient {
         expired_at: 1678901234,
         url: "http://api.typex.com/open/claw/qrcode/login?qr_code_id=17234567890",
       };
-      const qrResponse = await fetch(`${TYPEX_DOMAIN}/open/claw/qrcode`, {
+      const qrResponse = await fetch(`${TYPEX_DOMAIN}/user/qrcode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -51,7 +66,7 @@ export class TypeXClient {
     logger.info("Starting TypeX login flow...");
 
     try {
-      const checkRes = await fetch(`${TYPEX_DOMAIN}/open/claw/auth_check`, {
+      const checkRes = await fetch(`${TYPEX_DOMAIN}/open/qrcode/check_auth`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,6 +80,7 @@ export class TypeXClient {
       if (checkData.code === 200) {
         const { token, user_id } = checkData.data;
         this.accessToken = token;
+        this.userId = user_id;
         logger.info(`TypeX login successful! UserID: ${user_id}`);
         return true;
       } else if (checkData.code === 10001) {
@@ -96,7 +112,7 @@ export class TypeXClient {
       }
     }
 
-    logger.info(`TypeXClient sending message: type=${msgType}, content=${finalContent}`);
+    logger.info(`TypeXClient sending message: content=${finalContent}`);
 
     try {
       const url = `${TYPEX_DOMAIN}/open/claw/send_message`;
@@ -129,6 +145,43 @@ export class TypeXClient {
     } catch (error) {
       logger.error("Error sending message to TypeX API:", error);
       throw error;
+    }
+  }
+
+  async fetchMessages(pos: number) {
+    if (!this.accessToken) {
+      logger.warn("TypeXClient: No token, skipping fetch.");
+      return [];
+    }
+
+    try {
+      const url = `${TYPEX_DOMAIN}/open/claw/message`;
+
+      logger.debug(`Fetching messages from pos: ${pos}`);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: this.accessToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ pos: pos }),
+      });
+
+      const resJson = await response.json();
+
+      if (resJson.code !== 200) {
+        logger.warn(`Fetch failed with code ${resJson.code}: ${resJson.message}`);
+        return [];
+      }
+      if (Array.isArray(resJson.data)) {
+        return resJson.data;
+      }
+
+      return [];
+    } catch (e) {
+      logger.error("Fetch messages network error:", e);
+      return [];
     }
   }
 }

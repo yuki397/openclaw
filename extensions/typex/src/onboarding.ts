@@ -35,6 +35,7 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
       await prompter.note("Waiting for scan...", "Status");
 
       let token: string | null = null;
+      let userId: string = "";
       let attempts = 0;
       const maxAttempts = 60;
 
@@ -46,6 +47,7 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
 
         if (loginSuccessfully) {
           token = await client.getAccessToken();
+          userId = await client.getCurUserId();
           break;
         }
 
@@ -64,15 +66,14 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
       if (!cfg.channels.typex.accounts) cfg.channels.typex.accounts = {};
 
       // save config
-      cfg.channels.typex.accounts[token] = {
+      cfg.channels.typex.accounts[userId] = {
         token: token,
       };
-
-      cfg.channels.typex.defaultAccount = token;
+      cfg.channels.typex.defaultAccount = userId;
 
       await prompter.note("Success! TypeX linked.", "Done");
 
-      return { cfg, accountId: token };
+      return { cfg, accountId: userId };
     } catch (error) {
       await prompter.note(`Setup Failed: ${String(error)}`, "Error");
       return { cfg };

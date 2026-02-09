@@ -14,7 +14,6 @@ export type TypeXSendOpts = {
 
 export async function sendMessageTypeX(
   client: TypeXClient,
-  chatId: string,
   content: string | { text?: string },
   opts: TypeXSendOpts = {},
 ) {

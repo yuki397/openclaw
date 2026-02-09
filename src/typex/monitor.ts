@@ -1,60 +1,81 @@
-import type { RuntimeEnv } from "../runtime.js";
+import * as fs from "fs/promises";
+import * as path from "path";
 import { loadConfig, type OpenClawConfig } from "../config/config.js";
 import { getChildLogger } from "../logging.js";
+import { RuntimeEnv } from "../runtime.js";
+import { resolveTypeXAccount } from "./accounts.js";
 import { getTypeXClient } from "./client.js";
 import { processTypeXMessage } from "./message.js";
 
 const logger = getChildLogger({ module: "typex-monitor" });
 
 export type MonitorTypeXOpts = {
-  accountId?: string;
-  config?: OpenClawConfig;
-  runtime?: RuntimeEnv;
-  abortSignal?: AbortSignal;
+  account: any; // ResolvedTypeXAccount + extras from gateway
+  runtime: RuntimeEnv;
+  abortSignal: AbortSignal;
+  log?: any;
 };
 
-export async function monitorTypeXProvider(opts: MonitorTypeXOpts = {}) {
-  const cfg = opts.config ?? loadConfig();
-  const accountId = opts.accountId; // In real app, resolve default if missing
+export async function monitorTypeXProvider(opts: MonitorTypeXOpts) {
+  const { account, runtime, abortSignal, log } = opts;
+  // account.config has the raw config
+  const { email, token, appId } = account.config;
 
-  if (!accountId) {
-    // In a real implementation we might iterate all accounts
-    logger.warn("No accountId provided for TypeX monitor");
+  if (!token) {
+    log?.warn(`[${account.accountId}] No token found. Stopping monitor.`);
     return;
   }
 
-  // Get client (throws if config missing)
-  const client = getTypeXClient(accountId);
-  // Need to get appId from somewhere, re-using a mocked way or from config
-  const appId = "mock-app-id";
+  // Initialize Client
+  const client = getTypeXClient(undefined, { token, skipConfigCheck: true });
 
-  logger.info(`Starting TypeX monitor for account ${accountId}...`);
+  log?.info(`[${account.accountId}] Starting TypeX monitor for ${email || account.accountId}...`);
 
-  // Simulate long-running connection (e.g. WebSocket)
-  // In a real implementation, this would connect to the TypeX socket
+  // --- State Recovery (POS) ---
+  let currentPos = 0;
+  // runtime.dirs.data might need assertion
+  const dataDir = (runtime as any).dirs?.data || "./";
+  const safeId = (email || account.accountId || "default").replace(/[^a-z0-9]/gi, "_");
+  const stateFile = path.join(dataDir, `.typex_pos_${safeId}.json`);
 
-  const tick = setInterval(() => {
-    // Keep process alive or simulate checking
-  }, 10000);
-
-  if (opts.abortSignal) {
-    opts.abortSignal.addEventListener(
-      "abort",
-      () => {
-        logger.info("Stopping TypeX monitor...");
-        clearInterval(tick);
-      },
-      { once: true },
-    );
+  try {
+    const data = await fs.readFile(stateFile, "utf-8");
+    const json = JSON.parse(data);
+    if (typeof json.pos === "number") currentPos = json.pos;
+  } catch (e) {
+    /* Ignore */
   }
 
-  // Block indefinitely if no abort signal (mimicking the Feishu WS behavior)
-  if (!opts.abortSignal) {
-    await new Promise(() => {});
-  } else {
-    // Wait for abort
-    await new Promise<void>((resolve) => {
-      opts.abortSignal?.addEventListener("abort", () => resolve(), { once: true });
-    });
+  const cfg = loadConfig();
+
+  // --- Polling Loop ---
+  while (!abortSignal.aborted) {
+    try {
+      const messages = await client.fetchMessages(currentPos);
+
+      if (messages && messages.length > 0) {
+        for (const msg of messages) {
+          // Dispatch to OpenClaw via processTypeXMessage
+          await processTypeXMessage(client, { data: msg }, appId || account.accountId, {
+            accountId: account.accountId,
+            cfg,
+            botName: account.name,
+          });
+
+          if (typeof msg.id === "number" && msg.id > currentPos) {
+            currentPos = msg.id;
+          }
+        }
+        // Save state
+        await fs.writeFile(stateFile, JSON.stringify({ pos: currentPos }));
+      }
+    } catch (err) {
+      log?.error(`Error in TypeX polling loop: ${err}`);
+    }
+
+    if (abortSignal.aborted) break;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
+
+  log?.info(`Stopping TypeX monitor...`);
 }

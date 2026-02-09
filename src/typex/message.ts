@@ -33,7 +33,12 @@ export async function processTypeXMessage(
 
   const chatId = data.chat_id;
   const senderId = data.sender_id;
-  const text = data.content; // Taking simple content for now
+  // Use content as text for now. If content is JSON string, parse it.
+  let text = data.content;
+  // Attempt simple parsing if it looks like JSON? For now assume plain text or handle in future.
+
+  // Basic logging
+  logger.info(`Processing TypeX message from ${senderId} in ${chatId}`);
 
   // Build Context for Agent
   const ctx = {
@@ -42,7 +47,8 @@ export async function processTypeXMessage(
     From: senderId,
     To: chatId,
     SenderId: senderId,
-    ChatType: "dm", // Simplified
+    SenderName: data.sender_name || "User",
+    ChatType: "dm", // Simplified, TypeX mostly DM for now?
     Provider: "typex",
     Surface: "typex",
     Timestamp: data.create_time || Date.now(),
@@ -68,13 +74,22 @@ export async function processTypeXMessage(
       ...prefixOptions,
       deliver: async (responsePayload, info) => {
         // Handle outgoing replies from Agent
+        logger.info("info", info);
+
+        // Handle text response
         if (responsePayload.text) {
-          await sendMessageTypeX(client, chatId, { text: responsePayload.text });
+          await sendMessageTypeX(client, { text: responsePayload.text });
         }
 
         // Handle media if present in response
-        if (responsePayload.mediaUrl) {
-          await sendMessageTypeX(client, chatId, {}, { mediaUrl: responsePayload.mediaUrl });
+        const mediaUrls = responsePayload.mediaUrls?.length
+          ? responsePayload.mediaUrls
+          : responsePayload.mediaUrl
+            ? [responsePayload.mediaUrl]
+            : [];
+
+        for (const mediaUrl of mediaUrls) {
+          await sendMessageTypeX(client, {}, { mediaUrl });
         }
       },
       onError: (err) => {
@@ -82,7 +97,7 @@ export async function processTypeXMessage(
       },
     },
     replyOptions: {
-      disableBlockStreaming: true, // Not implementing streaming for TypeX MVP
+      disableBlockStreaming: true,
       onModelSelected,
     },
   });

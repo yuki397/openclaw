@@ -1,11 +1,6 @@
 import type { ChannelPlugin } from "openclaw/plugin-sdk";
-import {
-  buildChannelConfigSchema,
-  DEFAULT_ACCOUNT_ID,
-  // Note: some helpers might need to be imported from src paths if not exported by SDK
-  // For this example assuming we have access or implementing simplified versions
-} from "openclaw/plugin-sdk";
-// Direct imports from core to link logic
+import { buildChannelConfigSchema, DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
+import { TypeXClient } from "../../../src/typex/client.js";
 import { monitorTypeXProvider } from "../../../src/typex/monitor.js";
 import { typexOutbound } from "../../../src/typex/outbound.js";
 import { TypeXConfigSchema } from "./config-schema.js";
@@ -23,7 +18,6 @@ const meta = {
 };
 
 export const typexPlugin: ChannelPlugin<any> = {
-  // using any for resolved config type for MVP
   id: "typex",
   meta,
   onboarding: typexOnboardingAdapter,
@@ -39,9 +33,8 @@ export const typexPlugin: ChannelPlugin<any> = {
   reload: { configPrefixes: ["channels.typex"] },
   outbound: typexOutbound as any,
 
-  // Simplified Messaging Setup
   messaging: {
-    normalizeTarget: (t) => t, // No-op normalization
+    normalizeTarget: (t) => t,
     targetResolver: {
       looksLikeId: () => true,
       hint: "chat_id",
@@ -91,17 +84,14 @@ export const typexPlugin: ChannelPlugin<any> = {
     formatAllowFrom: () => [],
   },
 
-  // Gateway: Provide the start logic
   gateway: {
     startAccount: async (ctx) => {
-      const { account, log, setStatus, abortSignal, cfg, runtime } = ctx;
-      const { appId, appSecret } = account.config;
+      // 解构上下文
+      const { account, log, setStatus, abortSignal, runtime } = ctx;
 
-      if (!appId || !appSecret) {
-        throw new Error("TypeX app ID/secret not configured");
-      }
+      log?.info(`[${account.accountId}] TypeX Provider starting...`);
 
-      log?.info(`[${account.accountId}] starting TypeX provider`);
+      // 1. 设置状态：运行中
       setStatus({
         accountId: account.accountId,
         running: true,
@@ -109,23 +99,27 @@ export const typexPlugin: ChannelPlugin<any> = {
       });
 
       try {
+        // 2. 把任务委派给 Monitor (await 会一直阻塞直到 Monitor 退出)
+        // Monitor 内部的 while 循环会一直运行，直到 abortSignal 触发
         await monitorTypeXProvider({
-          accountId: account.accountId,
-          config: cfg,
-          runtime,
-          abortSignal,
+          account, // 包含 config (email, token)
+          runtime, // 包含 ingest 能力
+          abortSignal, // 包含停止信号
         });
       } catch (err) {
+        // 3. 错误处理
+        log?.error(`TypeX Provider crashed: ${err}`);
         setStatus({
           accountId: account.accountId,
           running: false,
           lastError: err instanceof Error ? err.message : String(err),
+          lastStopAt: Date.now(),
         });
+        // 抛出错误让 OpenClaw 知道这个账号挂了
         throw err;
       }
     },
   },
-
   security: {
     // Simplified security policy
     resolveDmPolicy: () => ({

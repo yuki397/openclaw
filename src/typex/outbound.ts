@@ -10,7 +10,7 @@ export const typexOutbound: ChannelOutboundAdapter = {
 
   sendText: async ({ to, text, accountId }) => {
     const client = getTypeXClient(accountId ?? undefined);
-    const result = await sendMessageTypeX(client, to, { text });
+    const result = await sendMessageTypeX(client, { text });
     return {
       channel: "typex",
       messageId: result?.message_id || "unknown",
@@ -20,7 +20,7 @@ export const typexOutbound: ChannelOutboundAdapter = {
 
   sendMedia: async ({ to, text, mediaUrl, accountId }) => {
     const client = getTypeXClient(accountId ?? undefined);
-    const result = await sendMessageTypeX(client, to, { text: text || "" }, { mediaUrl });
+    const result = await sendMessageTypeX(client, { text: text || "" }, { mediaUrl });
     return {
       channel: "typex",
       messageId: result?.message_id || "unknown",
