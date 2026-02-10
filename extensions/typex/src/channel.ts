@@ -1,6 +1,5 @@
 import type { ChannelPlugin } from "openclaw/plugin-sdk";
 import { buildChannelConfigSchema, DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
-import { TypeXClient } from "../../../src/typex/client.js";
 import { monitorTypeXProvider } from "../../../src/typex/monitor.js";
 import { typexOutbound } from "../../../src/typex/outbound.js";
 import { TypeXConfigSchema } from "./config-schema.js";
@@ -86,12 +85,11 @@ export const typexPlugin: ChannelPlugin<any> = {
 
   gateway: {
     startAccount: async (ctx) => {
-      // 解构上下文
+      console.log("startAccount", ctx);
       const { account, log, setStatus, abortSignal, runtime } = ctx;
 
       log?.info(`[${account.accountId}] TypeX Provider starting...`);
 
-      // 1. 设置状态：运行中
       setStatus({
         accountId: account.accountId,
         running: true,

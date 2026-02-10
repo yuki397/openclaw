@@ -27,6 +27,7 @@ export function resolveTypeXConfig(params: {
   cfg: OpenClawConfig;
   accountId?: string;
 }): ResolvedTypeXConfig {
+  console.log("resolveTypeXConfig", params);
   const { cfg, accountId } = params;
   const typexCfg = cfg.channels?.typex;
   const accountCfg = accountId ? typexCfg?.accounts?.[accountId] : undefined;

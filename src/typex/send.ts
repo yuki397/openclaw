@@ -1,8 +1,8 @@
 import type { TypeXClient } from "./client.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { getChildLogger } from "../logging.js";
-import { loadWebMedia } from "../web/media.js";
-import { TypeXMessageEnum } from "./types.ts";
+// import { loadWebMedia } from "../web/media.js";
+import { TypeXMessageEnum } from "./types.js";
 
 const logger = getChildLogger({ module: "typex-send" });
 

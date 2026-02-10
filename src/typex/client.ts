@@ -1,11 +1,6 @@
 import { loadConfig } from "../config/config.js";
 import { getChildLogger } from "../logging.js";
-import {
-  TypeXMessageEnum,
-  type TypeXClientOptions,
-  type TypeXMessage,
-  type TypeXMessageEntry,
-} from "./types.js";
+import { TypeXMessageEnum, type TypeXClientOptions } from "./types.js";
 
 const logger = getChildLogger({ module: "typex-client" });
 // const TYPEX_DOMAIN = "https://api-coco.typex.im";
@@ -78,7 +73,6 @@ export class TypeXClient {
           qr_code_id: qrcodeId,
         }),
       });
-      console.log("checkRes", checkRes);
       const setCookieHeader = checkRes.headers.get("set-cookie");
 
       if (setCookieHeader) {
@@ -90,7 +84,6 @@ export class TypeXClient {
         }
       }
       const checkData = await checkRes.json();
-      console.log("checkData", checkData);
       if (checkData.code === 0) {
         const { user_id } = checkData.data;
         this.userId = user_id;
@@ -120,31 +113,36 @@ export class TypeXClient {
       try {
         finalContent = JSON.stringify(content);
       } catch (e) {
-        logger.warn("Failed to stringify message content", e);
-        finalContent = String(content);
+        if (e instanceof Error) {
+          logger.warn("Failed to stringify message content", e);
+        }
+        finalContent = String(content as unknown);
       }
     }
 
-    logger.info(`TypeXClient sending message: content=${finalContent}`);
+    logger.info(
+      `TypeXClient sending message: content=${typeof finalContent === "string" ? finalContent : JSON.stringify(finalContent)}`,
+    );
 
     try {
       const url = `${TYPEX_DOMAIN}/open/claw/send_message`;
-
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          Authorization: token,
           "Content-Type": "application/json",
+          "x-developer": "ryan",
+          Cookie: token,
         },
         body: JSON.stringify({
-          content: finalContent,
+          content: {
+            text: finalContent,
+          },
           msg_type: msgType,
         }),
       });
-
       const resJson = await response.json();
 
-      if (resJson.code !== 200) {
+      if (resJson.code !== 0) {
         throw new Error(`Send message failed: [${resJson.code}] ${resJson.message}`);
       }
 
@@ -169,18 +167,17 @@ export class TypeXClient {
 
     try {
       const url = `${TYPEX_DOMAIN}/open/claw/message`;
-
       logger.debug(`Fetching messages from pos: ${pos}`);
-
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          Authorization: this.accessToken,
+          Cookie: this.accessToken,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ pos: pos }),
       });
 
+      console.log("response", response);
       const resJson = await response.json();
 
       if (resJson.code !== 200) {
@@ -203,7 +200,7 @@ export function getTypeXClient(accountId?: string, manualOptions?: TypeXClientOp
   let cfg;
   try {
     cfg = loadConfig();
-  } catch (e) {
+  } catch {
     cfg = {};
   }
 

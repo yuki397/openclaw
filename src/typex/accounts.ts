@@ -65,6 +65,7 @@ function resolveAppSecret(config?: { appSecret?: string; appSecretFile?: string 
 }
 
 export function listTypeXAccountIds(cfg: OpenClawConfig): string[] {
+  console.log("listTypeXAccountIds");
   const typexCfg = cfg.channels?.typex;
   const accounts = typexCfg?.accounts;
   const ids = new Set<string>();
@@ -90,6 +91,7 @@ export function listTypeXAccountIds(cfg: OpenClawConfig): string[] {
 
 export function resolveDefaultTypeXAccountId(cfg: OpenClawConfig): string {
   const ids = listTypeXAccountIds(cfg);
+  console.log("resolveDefaultTypeXAccountId", ids);
   if (ids.includes(DEFAULT_ACCOUNT_ID)) {
     return DEFAULT_ACCOUNT_ID;
   }
@@ -100,6 +102,7 @@ export function resolveTypeXAccount(params: {
   cfg: OpenClawConfig;
   accountId?: string | null;
 }): ResolvedTypeXAccount {
+  console.log("resolveTypeXAccount");
   const accountId = normalizeAccountId(params.accountId);
   const baseEnabled = params.cfg.channels?.typex?.enabled !== false;
   const merged = mergeTypeXAccountConfig(params.cfg, accountId);

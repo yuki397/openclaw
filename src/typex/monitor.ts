@@ -1,81 +1,97 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import { loadConfig, type OpenClawConfig } from "../config/config.js";
-import { getChildLogger } from "../logging.js";
+import { loadConfig } from "../config/config.js";
 import { RuntimeEnv } from "../runtime.js";
-import { resolveTypeXAccount } from "./accounts.js";
 import { getTypeXClient } from "./client.js";
 import { processTypeXMessage } from "./message.js";
 
-const logger = getChildLogger({ module: "typex-monitor" });
-
 export type MonitorTypeXOpts = {
-  account: any; // ResolvedTypeXAccount + extras from gateway
+  account: unknown; // ResolvedTypeXAccount + extras from gateway
   runtime: RuntimeEnv;
   abortSignal: AbortSignal;
-  log?: any;
+  log?: unknown;
 };
 
 export async function monitorTypeXProvider(opts: MonitorTypeXOpts) {
-  const { account, runtime, abortSignal, log } = opts;
-  // account.config has the raw config
-  const { email, token, appId } = account.config;
-
-  if (!token) {
-    log?.warn(`[${account.accountId}] No token found. Stopping monitor.`);
-    return;
-  }
-
-  // Initialize Client
-  const client = getTypeXClient(undefined, { token, skipConfigCheck: true });
-
-  log?.info(`[${account.accountId}] Starting TypeX monitor for ${email || account.accountId}...`);
-
-  // --- State Recovery (POS) ---
-  let currentPos = 0;
-  // runtime.dirs.data might need assertion
-  const dataDir = (runtime as any).dirs?.data || "./";
-  const safeId = (email || account.accountId || "default").replace(/[^a-z0-9]/gi, "_");
-  const stateFile = path.join(dataDir, `.typex_pos_${safeId}.json`);
-
+  console.log("monitorTypeXProvider");
   try {
-    const data = await fs.readFile(stateFile, "utf-8");
-    const json = JSON.parse(data);
-    if (typeof json.pos === "number") currentPos = json.pos;
-  } catch (e) {
-    /* Ignore */
-  }
+    const { account, runtime, abortSignal, log } = opts;
+    const accountObj = account as {
+      config: { email?: string; token?: string; appId?: string };
+      accountId: string;
+      name?: string;
+    };
+    const { email, token, appId } = accountObj.config;
+    // log is unknown, cast for usage
+    const logger = log as
+      | { warn: (msg: string) => void; info: (msg: string) => void; error: (msg: string) => void }
+      | undefined;
 
-  const cfg = loadConfig();
-
-  // --- Polling Loop ---
-  while (!abortSignal.aborted) {
-    try {
-      const messages = await client.fetchMessages(currentPos);
-
-      if (messages && messages.length > 0) {
-        for (const msg of messages) {
-          // Dispatch to OpenClaw via processTypeXMessage
-          await processTypeXMessage(client, { data: msg }, appId || account.accountId, {
-            accountId: account.accountId,
-            cfg,
-            botName: account.name,
-          });
-
-          if (typeof msg.id === "number" && msg.id > currentPos) {
-            currentPos = msg.id;
-          }
-        }
-        // Save state
-        await fs.writeFile(stateFile, JSON.stringify({ pos: currentPos }));
-      }
-    } catch (err) {
-      log?.error(`Error in TypeX polling loop: ${err}`);
+    if (!token) {
+      logger?.warn(`[${accountObj.accountId}] No token found. Stopping monitor.`);
+      return;
     }
 
-    if (abortSignal.aborted) break;
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-  }
+    // Initialize Client
+    const client = getTypeXClient(undefined, { token, skipConfigCheck: true });
 
-  log?.info(`Stopping TypeX monitor...`);
+    logger?.info(
+      `[${accountObj.accountId}] Starting TypeX monitor for ${email || accountObj.accountId}...`,
+    );
+
+    // --- State Recovery (POS) ---
+    let currentPos = 0;
+    // runtime.dirs.data might need assertion
+    const dataDir = (runtime as unknown as { dirs?: { data?: string } }).dirs?.data || "./";
+    const safeId = (email || accountObj.accountId || "default").replace(/[^a-z0-9]/gi, "_");
+    const stateFile = path.join(dataDir, `.typex_pos_${safeId}.json`);
+
+    try {
+      const data = await fs.readFile(stateFile, "utf-8");
+      const json = JSON.parse(data);
+      if (typeof json.pos === "number") {
+        currentPos = json.pos;
+      }
+    } catch {
+      /* Ignore */
+    }
+
+    const cfg = loadConfig();
+
+    // --- Polling Loop ---
+    while (!abortSignal.aborted) {
+      try {
+        const messages = await client.fetchMessages(currentPos);
+
+        if (messages && messages.length > 0) {
+          for (const msg of messages) {
+            // Dispatch to OpenClaw via processTypeXMessage
+            await processTypeXMessage(client, { data: msg }, appId || accountObj.accountId, {
+              accountId: accountObj.accountId,
+              cfg,
+              botName: accountObj.name,
+            });
+
+            if (typeof msg.id === "number" && msg.id > currentPos) {
+              currentPos = msg.id;
+            }
+          }
+          // Save state
+          await fs.writeFile(stateFile, JSON.stringify({ pos: currentPos }));
+        }
+      } catch (err) {
+        logger?.error(
+          `Error in TypeX polling loop: ${err instanceof Error ? err.stack : String(err)}`,
+        );
+      }
+
+      if (abortSignal.aborted) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      logger?.info(`Stopping TypeX monitor...`);
+    }
+  } catch (e) {
+    throw e;
+  }
 }

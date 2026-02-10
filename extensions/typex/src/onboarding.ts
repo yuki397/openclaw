@@ -73,6 +73,7 @@ export const typexOnboardingAdapter: ChannelOnboardingAdapter = {
       cfg.channels.typex.defaultAccount = userId;
 
       await prompter.note("Success! TypeX linked.", "Done");
+      await client.sendMessage("openclaw linked");
 
       return { cfg, accountId: userId };
     } catch (error) {
