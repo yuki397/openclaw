@@ -16,7 +16,7 @@ const meta = {
   order: 100,
 };
 
-export const typexPlugin: ChannelPlugin<any> = {
+export const typexPlugin = {
   id: "typex",
   meta,
   onboarding: typexOnboardingAdapter,
@@ -43,7 +43,6 @@ export const typexPlugin: ChannelPlugin<any> = {
   configSchema: buildChannelConfigSchema(TypeXConfigSchema),
 
   config: {
-    // Implementing minimal config helpers
     listAccountIds: (cfg) => {
       const accs = cfg.channels?.typex?.accounts || {};
       return Object.keys(accs);
@@ -58,19 +57,18 @@ export const typexPlugin: ChannelPlugin<any> = {
         accountId: id,
         name: account?.name || "TypeX",
         enabled: account?.enabled !== false,
-        configured: Boolean(account?.email),
+        configured: Boolean(account?.token),
         tokenSource: "config",
         config: account || {},
       };
     },
     defaultAccountId: (cfg) => {
-      // Simple default logic
       const accs = cfg.channels?.typex?.accounts || {};
       const first = Object.keys(accs)[0];
       return first || DEFAULT_ACCOUNT_ID;
     },
-    setAccountEnabled: ({ cfg }) => cfg, // No-op for MVP (should return cfg)
-    deleteAccount: ({ cfg }) => cfg, // No-op for MVP (should return cfg)
+    setAccountEnabled: ({ cfg }) => cfg,
+    deleteAccount: ({ cfg }) => cfg,
     isConfigured: (acc) => acc.configured,
     describeAccount: (acc) => ({
       accountId: acc.accountId!,
@@ -97,15 +95,12 @@ export const typexPlugin: ChannelPlugin<any> = {
       });
 
       try {
-        // 2. 把任务委派给 Monitor (await 会一直阻塞直到 Monitor 退出)
-        // Monitor 内部的 while 循环会一直运行，直到 abortSignal 触发
         await monitorTypeXProvider({
-          account, // 包含 config (email, token)
-          runtime, // 包含 ingest 能力
-          abortSignal, // 包含停止信号
+          account,
+          runtime,
+          abortSignal,
         });
       } catch (err) {
-        // 3. 错误处理
         log?.error(`TypeX Provider crashed: ${err}`);
         setStatus({
           accountId: account.accountId,
@@ -113,7 +108,6 @@ export const typexPlugin: ChannelPlugin<any> = {
           lastError: err instanceof Error ? err.message : String(err),
           lastStopAt: Date.now(),
         });
-        // 抛出错误让 OpenClaw 知道这个账号挂了
         throw err;
       }
     },
@@ -159,7 +153,7 @@ export const typexPlugin: ChannelPlugin<any> = {
       probe: snapshot.probe,
       lastProbeAt: snapshot.lastProbeAt,
     }),
-    probeAccount: async () => ({ ok: true, timestamp: Date.now() }), // Mock probe
+    probeAccount: async () => ({ ok: true, timestamp: Date.now() }),
     buildAccountSnapshot: ({ account, runtime }) => ({
       accountId: account.accountId,
       name: account.name,
@@ -175,4 +169,4 @@ export const typexPlugin: ChannelPlugin<any> = {
     }),
     logSelfId: () => {},
   },
-};
+} satisfies ChannelPlugin<any>;

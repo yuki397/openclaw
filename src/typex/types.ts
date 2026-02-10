@@ -19,10 +19,8 @@ export interface TypeXMessageEntry {
   sender_id: string;
   sender_name?: string;
   msg_type: TypeXMessageEnum;
-  content: string;
+  content: {
+    text: string;
+  };
   create_time: number;
-}
-
-export interface TypeXEventPayload {
-  data?: TypeXMessageEntry;
 }

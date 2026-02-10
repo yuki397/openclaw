@@ -39,13 +39,11 @@ export async function monitorTypeXProvider(opts: MonitorTypeXOpts) {
       `[${accountObj.accountId}] Starting TypeX monitor for ${email || accountObj.accountId}...`,
     );
 
-    // --- State Recovery (POS) ---
-    let currentPos = 0;
-    // runtime.dirs.data might need assertion
     const dataDir = (runtime as unknown as { dirs?: { data?: string } }).dirs?.data || "./";
     const safeId = (email || accountObj.accountId || "default").replace(/[^a-z0-9]/gi, "_");
     const stateFile = path.join(dataDir, `.typex_pos_${safeId}.json`);
 
+    let currentPos = 0;
     try {
       const data = await fs.readFile(stateFile, "utf-8");
       const json = JSON.parse(data);
@@ -66,17 +64,17 @@ export async function monitorTypeXProvider(opts: MonitorTypeXOpts) {
         if (messages && messages.length > 0) {
           for (const msg of messages) {
             // Dispatch to OpenClaw via processTypeXMessage
-            await processTypeXMessage(client, { data: msg }, appId || accountObj.accountId, {
+            await processTypeXMessage(client, msg, appId || accountObj.accountId, {
               accountId: accountObj.accountId,
               cfg,
               botName: accountObj.name,
             });
 
-            if (typeof msg.id === "number" && msg.id > currentPos) {
-              currentPos = msg.id;
+            if (typeof msg.position === "number") {
+              currentPos = msg.position;
             }
           }
-          // Save state
+          // Save message position
           await fs.writeFile(stateFile, JSON.stringify({ pos: currentPos }));
         }
       } catch (err) {

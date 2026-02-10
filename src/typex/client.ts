@@ -41,7 +41,7 @@ export class TypeXClient {
       // };
       const qrResponse = await fetch(`${TYPEX_DOMAIN}/user/qrcode?login_type=open`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-developer": "ryan" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
       if (!qrResponse.ok) {
@@ -67,7 +67,6 @@ export class TypeXClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-developer": "ryan",
         },
         body: JSON.stringify({
           qr_code_id: qrcodeId,
@@ -101,7 +100,7 @@ export class TypeXClient {
     }
   }
 
-  async sendMessage(content: string | object, msgType: TypeXMessageEnum = 0) {
+  async sendMessage(content: string | object, msgType: TypeXMessageEnum = 8) {
     const token = this.accessToken;
     if (!token) {
       logger.error("Cannot send message: No access token available.");
@@ -130,7 +129,6 @@ export class TypeXClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-developer": "ryan",
           Cookie: token,
         },
         body: JSON.stringify({
@@ -177,10 +175,9 @@ export class TypeXClient {
         body: JSON.stringify({ pos: pos }),
       });
 
-      console.log("response", response);
       const resJson = await response.json();
 
-      if (resJson.code !== 200) {
+      if (resJson.code !== 0) {
         logger.warn(`Fetch failed with code ${resJson.code}: ${resJson.message}`);
         return [];
       }
