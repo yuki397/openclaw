@@ -83,7 +83,6 @@ export const typexPlugin = {
 
   gateway: {
     startAccount: async (ctx) => {
-      console.log("startAccount", ctx);
       const { account, log, setStatus, abortSignal, runtime } = ctx;
 
       log?.info(`[${account.accountId}] TypeX Provider starting...`);

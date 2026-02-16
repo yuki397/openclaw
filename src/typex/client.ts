@@ -3,8 +3,8 @@ import { getChildLogger } from "../logging.js";
 import { TypeXMessageEnum, type TypeXClientOptions } from "./types.js";
 
 const logger = getChildLogger({ module: "typex-client" });
-// const TYPEX_DOMAIN = "https://api-coco.typex.im";
-const TYPEX_DOMAIN = "https://api-tx.bossjob.net.cn";
+const TYPEX_DOMAIN = "https://api-coco.typex.im";
+// const TYPEX_DOMAIN = "https://api-tx.bossjob.net.cn";
 
 export class TypeXClient {
   private options: TypeXClientOptions;
@@ -34,11 +34,6 @@ export class TypeXClient {
 
   async fetchQrcodeUrl() {
     try {
-      // return {
-      //   uuid: "17234567890",
-      //   expired_at: 1678901234,
-      //   url: "http://api.typex.com/open/claw/qrcode/login?qr_code_id=17234567890",
-      // };
       const qrResponse = await fetch(`${TYPEX_DOMAIN}/user/qrcode?login_type=open`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,7 +95,7 @@ export class TypeXClient {
     }
   }
 
-  async sendMessage(content: string | object, msgType: TypeXMessageEnum = 8) {
+  async sendMessage(content: string | object, msgType: TypeXMessageEnum = 0) {
     const token = this.accessToken;
     if (!token) {
       logger.error("Cannot send message: No access token available.");
@@ -207,8 +202,6 @@ export function getTypeXClient(accountId?: string, manualOptions?: TypeXClientOp
 
   if (accountId && typexCfg.accounts?.[accountId]) {
     token = typexCfg.accounts[accountId].token;
-  } else if (typexCfg.email) {
-    token = typexCfg.token;
   }
 
   if (!manualOptions?.skipConfigCheck) {

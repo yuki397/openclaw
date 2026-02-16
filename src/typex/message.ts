@@ -72,9 +72,6 @@ export async function processTypeXMessage(
     dispatcherOptions: {
       ...prefixOptions,
       deliver: async (responsePayload, info) => {
-        // Handle outgoing replies from Agent
-        console.log("info", info, responsePayload);
-
         // Handle text response
         if (responsePayload.text) {
           await sendMessageTypeX(client, responsePayload.text);

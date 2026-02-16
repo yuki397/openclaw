@@ -25,6 +25,8 @@ export type TypeXAccountConfig = {
   email?: string;
   /** TypeX token. */
   token?: string;
+  /** Last message position. */
+  last_msg_pos?: number;
   /** App ID. */
   appId?: string;
   /** App Secret. */
