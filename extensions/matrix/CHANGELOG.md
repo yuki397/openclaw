@@ -1,78 +1,18 @@
 # Changelog
 
-## 2026.2.4
+## 2026.2.25
 
 ### Changes
 
 - Version alignment with core OpenClaw release numbers.
 
-## 2026.2.2
+## 2026.2.24
 
 ### Changes
 
 - Version alignment with core OpenClaw release numbers.
 
-## 2026.1.31
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.30
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.29
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.23
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.22
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.21
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.20
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.17-1
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.17
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.16
-
-### Changes
-
-- Version alignment with core OpenClaw release numbers.
-
-## 2026.1.15
+## 2026.2.22
 
 ### Changes
 
@@ -82,7 +22,6 @@
 
 ### Features
 
-- Version alignment with core OpenClaw release numbers.
 - Matrix channel plugin with homeserver + user ID auth (access token or password login with device name).
 - Direct messages with pairing/allowlist/open/disabled policies and allowFrom support.
 - Group/room controls: allowlist policy, per-room config, mention gating, auto-reply, per-room skills/system prompts.
