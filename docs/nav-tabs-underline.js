@@ -61,9 +61,7 @@
     navTabs = tabs;
     ensureUnderline(navTabs);
     if (lastX !== null && lastWidth !== null) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       navTabs.style.setProperty("--nav-tab-underline-x", `${lastX}px`);
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       navTabs.style.setProperty("--nav-tab-underline-width", `${lastWidth}px`);
       navTabs.classList.add(READY_CLASS);
     }
