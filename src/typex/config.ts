@@ -1,7 +1,15 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { DmPolicy, GroupPolicy } from "../config/types.base.js";
 import type { TypeXGroupConfig } from "../config/types.typex.js";
-import { firstDefined } from "../feishu/access.js";
+
+const firstDefined = <T>(...values: Array<T | undefined>) => {
+  for (const value of values) {
+    if (typeof value !== "undefined") {
+      return value;
+    }
+  }
+  return undefined;
+};
 
 export type ResolvedTypeXConfig = {
   enabled: boolean;

@@ -25,7 +25,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@openclaw/extension-typex",
+      "npmSpec": "@openclaw/typex",
       "localPath": "extensions/typex",
       "defaultChoice": "npm"
     }
