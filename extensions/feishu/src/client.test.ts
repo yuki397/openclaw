@@ -76,7 +76,7 @@ describe("createFeishuWSClient proxy handling", () => {
     expect(options?.agent).toBeUndefined();
   });
 
-  it("uses proxy env precedence: https_proxy first, then HTTPS_PROXY, then http_proxy/HTTP_PROXY", () => {
+  it("uses proxy env precedence across platforms", () => {
     process.env.https_proxy = "http://lower-https:8001";
     process.env.HTTPS_PROXY = "http://upper-https:8002";
     process.env.http_proxy = "http://lower-http:8003";
@@ -84,10 +84,12 @@ describe("createFeishuWSClient proxy handling", () => {
 
     createFeishuWSClient(baseAccount);
 
+    const expectedProxy =
+      process.platform === "win32" ? "http://upper-https:8002" : "http://lower-https:8001";
     expect(httpsProxyAgentCtorMock).toHaveBeenCalledTimes(1);
-    expect(httpsProxyAgentCtorMock).toHaveBeenCalledWith("http://lower-https:8001");
+    expect(httpsProxyAgentCtorMock).toHaveBeenCalledWith(expectedProxy);
     const options = firstWsClientOptions();
-    expect(options.agent).toEqual({ proxyUrl: "http://lower-https:8001" });
+    expect(options.agent).toEqual({ proxyUrl: expectedProxy });
   });
 
   it("passes HTTP_PROXY to ws client when https vars are unset", () => {
